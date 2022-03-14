@@ -8,11 +8,11 @@ const createPost={
     type: postType,
     description:"Create a new publisher",
     args:{
-        userID:{type: GraphQLID},
         photo:{type: GraphQLString},
         description:{type: GraphQLString}
     },
-    resolve:async(_,{userID,photo,description})=>{
+    resolve:async(_,{photo,description},{verifiedUser})=>{
+        const userID=verifiedUser.id;
         const newPost=new Post({userID,photo,description});
         const user=await User.findById(userID);
         await newPost.save();
@@ -27,12 +27,14 @@ const updatePost={
     type: postType,
     description:"update a post",
     args:{
-        id:{type: GraphQLID},
+        postID:{type: GraphQLID},
         photo:{type: GraphQLString},
         description:{type: GraphQLString}
     },
-    resolve:async(_,{id,photo,description})=>{
-        return await Post.findByIdAndUpdate(id,{photo,description},{new:true});
+    resolve:async(_,{postID,photo,description},{verifiedUser})=>{
+        const updatePost= await Post.findOneAndUpdate({_id:postID,userID:verifiedUser.id},{photo,description},{new:true});
+        if(!updatePost)throw new Error('This post id does not belong to the user');
+        else return updatePost;
     }
 }
 
@@ -40,21 +42,24 @@ const deletePost={
     type:GraphQLString,
     description:"delete a post by id",
     args:{
-        id:{type:GraphQLID}
+        postID:{type:GraphQLID}
     },
-    resolve:async(_,{id})=>{
-        const postDeleted=await Post.findById(id);
-        if(postDeleted){
-            const userID=postDeleted.userID;
-            const user=await User.findById(userID);
-            const index=user.postsID.indexOf(id);
+    resolve:async(_,{postID},{verifiedUser})=>{
+        try {
+        const post=await Post.findById(postID);
+        if(post.userID == verifiedUser.id){
+            const user=await User.findById(verifiedUser.id);
+            const index=user.postsID.indexOf(postID);
             await user.postsID.splice(index,1);
             await user.save();
-            await Comment.deleteMany({postID:id});
-            postDeleted.remove();
+            await Comment.deleteMany({postID});
+            post.remove();
             return 'Post deleted';
         }
-        else return 'Post not found';
+        else return 'This post id does not belong to the user'
+        } catch (error) {
+            return 'Post not found';
+        }
     }
 }
 
@@ -65,10 +70,9 @@ const createComment = {
     args:{
         comment:{type:GraphQLString},
         postID:{type: GraphQLID},
-        userID:{type: GraphQLID}
     },
-    resolve:async(_,{comment,postID,userID})=>{
-        const comentario=new Comment({comment,postID,userID});
+    resolve:async(_,{comment,postID},{verifiedUser})=>{
+        const comentario=new Comment({comment,postID,userID:verifiedUser.id});
         const post=await Post.findById(postID);
         await comentario.save();
         await post.comments.push(comentario._id);
@@ -81,20 +85,20 @@ const deleteComment={
     type: GraphQLString,
     description:'Delete a comment',
     args:{
-        id:{type: GraphQLID}
+        commentID:{type: GraphQLID}
     },
-    resolve:async(_,{id})=>{
-        let commentDeleted=await Comment.findById(id);
-        if(commentDeleted){
-            const post=await Post.findById(commentDeleted.postID);
-            console.log(post);
-            const index=post.comments.indexOf(id);
-            await post.comments.splice(index, 1);
-            await post.save();
-            commentDeleted.remove();
-            return 'Comment deleted';
-        }
-        else return 'Comment not found';
+    resolve:async(_,{commentID},{verifiedUser})=>{
+            const commentDeleted=await Comment.findById(commentID);
+            if(commentDeleted)
+            if(commentDeleted.userID == verifiedUser.id){
+                const post=await Post.findById(commentDeleted.postID);
+                const index=post.comments.indexOf(commentID);
+                await post.comments.splice(index, 1);
+                await post.save();
+                commentDeleted.remove();
+                return 'Comment deleted';
+            }else return 'This comment does not belong to this user'
+            else return 'Comment not found';
     }
 }
 

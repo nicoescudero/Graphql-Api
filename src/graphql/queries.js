@@ -15,7 +15,7 @@ const allUsers={
 
 //POSTS
 
-const getAllPosts={
+const allPosts={
     type:GraphQLList(postType),
     description:"Get all posts",
     resolve:async(_,args)=>{
@@ -27,10 +27,18 @@ const getPostsByUserId={
     type:GraphQLList(postType),
     description:"Get posts by user id",
     args:{
-        userID:{type:GraphQLID},
+        userID:{type:GraphQLID}
     },
     resolve:async(_,{userID})=>{
         return await Post.find({userID});
+    }
+}
+
+const myPosts={
+    type:GraphQLList(postType),
+    description:"All posts by the authenticated user",
+    resolve:async(_,args,{verifiedUser})=>{
+        return await Post.find({userID:verifiedUser.id});
     }
 }
 
@@ -48,16 +56,16 @@ const commentByID={
     type:commentType,
     description:'Comment by ID',
     args:{
-        id:{type:GraphQLID}
+        commentID:{type:GraphQLID}
     },
-    resolve:async(_,{id})=>{
-        return await Comment.findById(id);
+    resolve:async(_,{commentID})=>{
+        return await Comment.findById(commentID);
     }
 }
 
 const allCommentsOfAPost={
     type:GraphQLList(commentType),
-    description:'List of comments of a post',
+    description:'List of comments to a post',
     args:{
         postID:{type:GraphQLID}
     },
@@ -66,9 +74,9 @@ const allCommentsOfAPost={
     }
 }
 
-const allCommentsOfAUser={
+const allCommentsByAUser={
     type:GraphQLList(commentType),
-    description:'List of comments of a user',
+    description:'List of comments from a user',
     args:{
         userID:{type:GraphQLID}
     },
@@ -77,4 +85,12 @@ const allCommentsOfAUser={
     }
 }
 
-module.exports= {allUsers,getAllPosts,getPostsByUserId,allComments,commentByID,allCommentsOfAPost,allCommentsOfAUser};
+const myComments={
+    type:GraphQLList(commentType),
+    description:'All comments by the authenticated user',
+    resolve:async(_,args,{verifiedUser})=>{
+        return await Comment.find({userID:verifiedUser.id});
+    }
+}
+
+module.exports= {allUsers,allPosts,getPostsByUserId,myPosts,allComments,commentByID,allCommentsOfAPost,allCommentsByAUser,myComments};

@@ -1,5 +1,5 @@
 const {GraphQLSchema,GraphQLObjectType}=require('graphql');
-const {allUsers,getAllPosts,getPostsByUserId,allComments,commentByID,allCommentsOfAPost,allCommentsOfAUser}=require('./queries');
+const {allUsers,allPosts,getPostsByUserId,myPosts,allComments,commentByID,allCommentsOfAPost,allCommentsByAUser,myComments}=require('./queries');
 const {createPost,updatePost,deletePost,createComment,deleteComment}=require('./mutation');
 
 const QueryType=new GraphQLObjectType({
@@ -7,12 +7,14 @@ const QueryType=new GraphQLObjectType({
     description:"The root query type",
     fields:{
         allUsers,
-        getAllPosts,
+        allPosts,
         getPostsByUserId,
+        myPosts,
         allComments,
         commentByID,
         allCommentsOfAPost,
-        allCommentsOfAUser
+        allCommentsByAUser,
+        myComments
     }
 }); 
 
